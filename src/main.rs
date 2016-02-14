@@ -1,84 +1,13 @@
+mod framework;
+
 use std::collections::BTreeMap;
 use std::process;
 use std::env;
 
-extern crate chrono;
-use chrono::Local;
-
 extern crate getopts;
 use getopts::Options;
 
-#[derive(Clone)]
-pub enum Color {
-    /// An HTML color (#1234aa)
-    Arbitrary(String),
-    /// The default
-    Standard,
-    /// Various colors
-    White,
-    Red,
-    Green,
-    Blue,
-    Orange,
-    Purple,
-}
-
-/// An output produced by a metric to be displayed in the bar.
-pub struct RenderResult {
-    pub text: String,
-    pub color: Color,
-}
-
-/// State that is stored in a MetricState between rendering cycles.
-#[derive(Clone)]
-pub enum State {
-    Empty,
-    S(String),
-    I(i64),
-    F(f64),
-    C(Color),
-}
-
-/// State that is passed to and returned from every render cycle.
-pub struct MetricState {
-    /// Arbitrary state
-    state: BTreeMap<String, State>,
-
-    /// Unix epoch in seconds. This is updated by the framework.
-    pub last_called: i64,
-}
-
-impl MetricState {
-    pub fn new() -> MetricState {
-        MetricState {
-            state: BTreeMap::new(),
-            last_called: 0,
-        }
-    }
-    pub fn get(&self, k: String) -> State {
-        self.state.get(&k).unwrap_or(&State::Empty).clone()
-    }
-    pub fn set(&mut self, k: String, v: State) {
-        self.state.insert(k, v);
-    }
-    pub fn now() -> i64 {
-        Local::now().timestamp()
-    }
-}
-
-trait Metric {
-    /// Initializes a metric using the string supplied as parameter to the command line argument.
-    fn init(&self, argvalue: Option<String>) -> MetricState;
-    /// Renders the metric.
-    fn render(&mut self, st: &mut MetricState) -> RenderResult;
-}
-
-/// A metric that is active in the current run and updated for every cycle.
-struct ActiveMetric {
-    name: String,
-    m: Box<Metric>,
-    st: MetricState,
-}
+use framework::*;
 
 /// Represents a/the set of metrics available for display.
 struct AvailableMetrics {
@@ -86,6 +15,9 @@ struct AvailableMetrics {
     opts: Options,
 }
 
+
+/// Set of all metrics. Used to register metrics and select the active ones based on the user's
+/// selection.
 impl AvailableMetrics {
     fn new() -> AvailableMetrics {
         let mut options = Options::new();
@@ -155,11 +87,10 @@ impl AvailableMetrics {
         for (metric_name, metric) in self.metrics.into_iter() {
             if matches.opt_present(&metric_name) {
                 let st = metric.init(matches.opt_str(&metric_name));
-                metrics.push(ActiveMetric {
-                    name: String::from(metric_name),
-                    m: metric,
-                    st: st,
-                });
+                metrics.push(ActiveMetric::new(
+                    String::from(metric_name),
+                    metric,
+                    st));
             }
         }
 
@@ -168,9 +99,9 @@ impl AvailableMetrics {
         let ordmap = AvailableMetrics::make_ordering_map(matches.opt_str("ordering")
                                                                 .unwrap_or(String::from("")));
         metrics.sort_by(|a, b| {
-            match (ordmap.get(&a.name), ordmap.get(&b.name)) {
+            match (ordmap.get(a.name()), ordmap.get(b.name())) {
                 (Some(i1), Some(i2)) => i1.cmp(i2),
-                (_, _) => a.name.cmp(&b.name),
+                (_, _) => a.name().cmp(b.name()),
             }
         });
 
