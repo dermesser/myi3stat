@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 
 use std::collections::BTreeMap;
+use std::thread::sleep;
+use std::time::Duration;
 
 extern crate chrono;
 use self::chrono::Local;
@@ -16,14 +18,43 @@ pub enum Color {
     Red,
     Green,
     Blue,
+    Black,
     Orange,
     Purple,
 }
 
+impl Color {
+    fn to_string(&self) -> String {
+        match self.clone() {
+            Color::Arbitrary(c) => c,
+            Color::Standard => String::from("#ffffff"),
+            Color::White => String::from("#ffffff"),
+            Color::Red => String::from("#ff0000"),
+            Color::Green => String::from("#00ff00"),
+            Color::Blue => String::from("#0000ff"),
+            Color::Black => String::from("#000000"),
+            Color::Orange => String::from("#e8a317"),
+            Color::Purple => String::from("#8d0552"),
+        }
+    }
+}
+
 /// An output produced by a metric to be displayed in the bar.
 pub struct RenderResult {
+    name: String,
     pub text: String,
     pub color: Color,
+}
+
+impl RenderResult {
+    fn to_json(&self) -> String {
+        let result = format!(
+            "{{\"name\": \"{name}\",\"color\":\"{color}\",\"markup\":\"none\",\"full_text\":\"{text}\"}}",
+            name=self.name,
+            color=self.color.to_string(),
+            text=self.text);
+        result
+    }
 }
 
 /// State that is stored in a MetricState between rendering cycles.
@@ -87,5 +118,24 @@ impl ActiveMetric {
     }
     pub fn name(&self) -> &String {
         &self.name
+    }
+    pub fn render(&mut self) -> RenderResult {
+        let mut result = self.m.render(&mut self.st);
+        result.name = self.name.clone();
+        result
+    }
+}
+
+pub fn render_loop(mut metrics: Vec<ActiveMetric>, interval: i32) {
+    let ival_duration = Duration::new(interval as u64, 0);
+    let intro = "{\"version\":1}\n[\n";
+    println!("{}", intro);
+
+    loop {
+        let render_result = metrics.iter_mut().map(|m| m.render()).fold(String::from(""), |mut out, p| { out.push_str(&p.to_json()); out.push_str(","); out });
+
+        println!("[{}],", render_result);
+
+        sleep(ival_duration);
     }
 }
