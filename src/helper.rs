@@ -14,7 +14,7 @@ pub fn read_procfs_file(path: String) -> Option<String> {
     let mut fullpath = String::from("/proc/");
     fullpath.push_str(&path);
 
-    match fs::OpenOptions::new().read(true).open(path) {
+    match fs::OpenOptions::new().read(true).open(fullpath) {
         Err(_) => return None,
         Ok(f) => file = f,
     }
@@ -34,6 +34,10 @@ pub fn read_procfs_file(path: String) -> Option<String> {
 pub fn get_procfs_file_lines(path: String) -> Option<Vec<String>> {
     match read_procfs_file(path) {
         None => None,
-        Some(s) => Some(s.lines().map(|s| String::from(s)).collect()),
+        Some(s) => Some(s.lines().map(String::from).collect()),
     }
+}
+
+pub fn commaseparated_to_vec(s: String) -> Vec<String> {
+    s.split(",").map(String::from).collect()
 }
