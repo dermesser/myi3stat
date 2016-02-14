@@ -121,12 +121,18 @@ impl AvailableMetrics {
 
 fn register_metrics(registry: &mut AvailableMetrics) {
     use metrics::time;
+    use metrics::net;
 
     // List of codes: https://lifthrasiir.github.io/rust-chrono/chrono/format/strftime/index.html
     registry.register_metric("clock",
                              "A timestamp clock. Uses format codes like date(1)",
                              "%H:%M",
                              time::clock_metric());
+    registry.register_metric("netif",
+                             "Shows total received/transmitted bytes for network interaces",
+                             "eth0,lo",
+                             net::make_net_metric());
+
 }
 
 fn main() {
