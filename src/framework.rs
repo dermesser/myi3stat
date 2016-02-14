@@ -11,8 +11,7 @@ use self::chrono::Local;
 pub enum Color {
     /// An HTML color (#1234aa)
     Arbitrary(String),
-    /// The default
-    Standard,
+    Default,
     /// Various colors
     White,
     Red,
@@ -27,7 +26,7 @@ impl Color {
     fn to_string(&self) -> String {
         match self.clone() {
             Color::Arbitrary(c) => c,
-            Color::Standard => String::from("#ffffff"),
+            Color::Default => String::from("#ffffff"),
             Color::White => String::from("#ffffff"),
             Color::Red => String::from("#ff0000"),
             Color::Green => String::from("#00ff00"),
@@ -42,11 +41,18 @@ impl Color {
 /// An output produced by a metric to be displayed in the bar.
 pub struct RenderResult {
     name: String,
-    pub text: String,
-    pub color: Color,
+    text: String,
+    color: Color,
 }
 
 impl RenderResult {
+    pub fn new(text: String, color: Color) -> RenderResult {
+        RenderResult {
+            name: String::new(),
+            text: text,
+            color: color,
+        }
+    }
     fn to_json(&self) -> String {
         let result = format!("{{\"name\": \
                               \"{name}\",\"color\":\"{color}\",\"markup\":\"none\",\"full_text\":\
@@ -97,9 +103,9 @@ impl MetricState {
 
 pub trait Metric {
     /// Initializes a metric using the string supplied as parameter to the command line argument.
-    fn init(&self, argvalue: Option<String>) -> MetricState;
+    fn init(&self, _: &mut MetricState, _: Option<String>) {}
     /// Renders the metric.
-    fn render(&mut self, st: &mut MetricState) -> RenderResult;
+    fn render(&self, st: &mut MetricState) -> RenderResult;
 }
 
 /// A metric that is active in the current run and updated for every cycle.
@@ -129,19 +135,19 @@ impl ActiveMetric {
 
 pub fn render_loop(mut metrics: Vec<ActiveMetric>, interval: i32) {
     let ival_duration = Duration::new(interval as u64, 0);
-    let intro = "{\"version\":1}\n[\n";
+    let intro = "{\"version\":1}\n[[]\n";
     print!("{}", intro);
 
     loop {
-        let render_result = metrics.iter_mut()
-                                   .map(|m| m.render())
-                                   .fold(String::from(""), |mut out, p| {
-                                       out.push_str(&p.to_json());
-                                       out.push_str(",");
-                                       out
-                                   });
-
-        println!("[{}],", render_result);
+        let mut render_result = metrics.iter_mut()
+                                       .map(|m| m.render())
+                                       .fold(String::from(""), |mut out, p| {
+                                           out.push_str(&p.to_json());
+                                           out.push_str(",");
+                                           out
+                                       });
+        render_result.pop();
+        println!(",[{}]", render_result);
 
         sleep(ival_duration);
     }
