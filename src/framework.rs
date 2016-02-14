@@ -82,11 +82,10 @@ impl ActiveMetric {
         ActiveMetric {
             name: name,
             m: metric,
-            st: initial_state
+            st: initial_state,
         }
     }
     pub fn name(&self) -> &String {
         &self.name
     }
 }
-

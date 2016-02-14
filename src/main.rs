@@ -60,7 +60,13 @@ impl AvailableMetrics {
                 self.print_help();
                 process::exit(1)
             }
-            Ok(m) => m,
+            Ok(m) => {
+                if m.opt_present("help") || m.opt_present("h") {
+                    self.print_help();
+                    process::exit(1)
+                }
+                m
+            }
         }
     }
 
@@ -87,10 +93,7 @@ impl AvailableMetrics {
         for (metric_name, metric) in self.metrics.into_iter() {
             if matches.opt_present(&metric_name) {
                 let st = metric.init(matches.opt_str(&metric_name));
-                metrics.push(ActiveMetric::new(
-                    String::from(metric_name),
-                    metric,
-                    st));
+                metrics.push(ActiveMetric::new(String::from(metric_name), metric, st));
             }
         }
 
@@ -119,4 +122,6 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     let all_metrics = AvailableMetrics::new();
     let (selected_metrics, interval) = all_metrics.evaluate(&args[1..]);
+
+    println!("{}", interval);
 }
