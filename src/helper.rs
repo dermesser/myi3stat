@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::fs;
 use std::io::Read;
 
@@ -23,9 +25,10 @@ pub fn read_procfs_file(path: String) -> Option<String> {
     }
 
     let mut buf = String::with_capacity(size);
-    file.read_to_string(&mut buf);
-
-    Some(buf)
+    match file.read_to_string(&mut buf) {
+        Err(_) => None,
+        Ok(_) => Some(buf),
+    }
 }
 
 pub fn get_procfs_file_lines(path: String) -> Option<Vec<String>> {
