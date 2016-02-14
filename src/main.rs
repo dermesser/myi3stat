@@ -120,8 +120,9 @@ impl AvailableMetrics {
 }
 
 fn register_metrics(registry: &mut AvailableMetrics) {
-    use metrics::time;
+    use metrics::load;
     use metrics::net;
+    use metrics::time;
 
     // List of codes: https://lifthrasiir.github.io/rust-chrono/chrono/format/strftime/index.html
     registry.register_metric("clock",
@@ -132,7 +133,11 @@ fn register_metrics(registry: &mut AvailableMetrics) {
                              "Shows total received/transmitted bytes for network interaces",
                              "eth0,lo",
                              net::make_net_metric());
-
+    registry.register_metric("load",
+                             "Shows the last three load averages over the last (1, 5, 15) \
+                              minutes.",
+                             "",
+                             load::make_load_metric());
 }
 
 fn main() {
