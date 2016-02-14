@@ -128,6 +128,7 @@ impl ActiveMetric {
     }
     pub fn render(&mut self) -> RenderResult {
         let mut result = self.m.render(&mut self.st);
+        self.st.last_called = MetricState::now();
         result.name = self.name.clone();
         result
     }
