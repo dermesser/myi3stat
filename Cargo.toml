@@ -1,0 +1,10 @@
+[package]
+name = "myi3stat"
+version = "0.1.0"
+authors = ["Lewin Bormann <lbo@spheniscida.de>"]
+
+[dependencies]
+getopts = ">=0.2"
+rustc-serialize = ">=0.3.18"
+regex = ">=0.1"
+chrono = ">=0.2"
