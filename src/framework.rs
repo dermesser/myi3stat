@@ -5,7 +5,7 @@ use std::thread::sleep;
 use std::time::Duration;
 
 extern crate chrono;
-use self::chrono::Local;
+use self::chrono as chron;
 
 #[derive(Clone)]
 pub enum Color {
@@ -96,8 +96,11 @@ impl MetricState {
     pub fn set(&mut self, k: String, v: State) {
         self.state.insert(k, v);
     }
+    /// Returns timestamp in epoch milliseconds.
     pub fn now() -> i64 {
-        Local::now().timestamp()
+        use self::chrono::Timelike;
+        let t = chron::Local::now();
+        t.timestamp() + t.nanosecond() as i64 / 1000000
     }
 }
 
@@ -135,7 +138,7 @@ impl ActiveMetric {
 }
 
 pub fn render_loop(mut metrics: Vec<ActiveMetric>, interval: i32) {
-    let ival_duration = Duration::new(interval as u64, 0);
+    let ival_duration = Duration::new((interval / 1000) as u64, 1000000 * (interval as u32 % 1000));
     let intro = "{\"version\":1}\n[[]\n";
     print!("{}", intro);
 

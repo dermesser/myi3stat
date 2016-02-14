@@ -35,7 +35,7 @@ argument is a user-supplied string from the command line invocation (see below,
         pub fn set(&mut self, k: String, v: State);
         // Obtain current timestamp.
         pub fn now() -> i64;
-        // Time (Unix epoch) of last call.
+        // Time (in milliseconds since Unix epoch) of last call.
         pub last_called: i64;
     }
     pub enum State {
@@ -48,8 +48,9 @@ argument is a user-supplied string from the command line invocation (see below,
 
 Every time your metric is asked to `render()`, it is given the same
 `MetricState` object; `last_called` is set to the timestamp of the previous
-invocation (so you can compute a rate, for example); it has second-resolution.
-You can arbitrarily get and set values on the `MetricState`.
+invocation (so you can compute a rate, for example); it has millisecond
+resolution and is 0 on first invocation. You can arbitrarily get and set values
+on the `MetricState`.
 
 Typically you will set some constant configuration parameters at the invocation
 of your `init()` method, and use them later to determine how exactly you'll

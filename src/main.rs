@@ -30,7 +30,7 @@ impl AvailableMetrics {
                        "METRIC1,METRIC2,METRIC3");
         options.optopt("",
                        "interval",
-                       "Interval in seconds between individual render cycles. Default: 1",
+                       "Interval in milliseconds between individual render cycles. Default: 1000",
                        "SECONDS");
         options.optflag("h", "help", "Print a help text");
 
@@ -111,9 +111,9 @@ impl AvailableMetrics {
         });
 
         let interval = i32::from_str_radix(&matches.opt_str("interval")
-                                                   .unwrap_or(String::from("1")),
+                                                   .unwrap_or(String::from("1000")),
                                            10)
-                           .unwrap_or(1);
+                           .unwrap_or(1000);
 
         (metrics, interval)
     }
