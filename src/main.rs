@@ -1,5 +1,6 @@
 mod framework;
 mod helper;
+mod metrics;
 
 use std::collections::BTreeMap;
 use std::process;
@@ -43,7 +44,7 @@ impl AvailableMetrics {
     /// desc and example are for the purpose of documenting the command line option that is added.
     fn register_metric(&mut self, name: &str, desc: &str, example: &str, metric: Box<Metric>) {
         if !self.metrics.contains_key(&String::from(name)) {
-            self.opts.optopt("", name, desc, example);
+            self.opts.optflagopt("", name, desc, example);
             self.metrics.insert(String::from(name), metric);
         }
     }
@@ -92,7 +93,8 @@ impl AvailableMetrics {
         // Look for every defined metric if the user wants to have it displayed.
         for (metric_name, metric) in self.metrics.into_iter() {
             if matches.opt_present(&metric_name) {
-                let st = metric.init(matches.opt_str(&metric_name));
+                let mut st = MetricState::new();
+                metric.init(&mut st, matches.opt_str(&metric_name));
                 metrics.push(ActiveMetric::new(String::from(metric_name), metric, st));
             }
         }
@@ -117,7 +119,15 @@ impl AvailableMetrics {
     }
 }
 
-fn register_metrics(registry: &mut AvailableMetrics) {}
+fn register_metrics(registry: &mut AvailableMetrics) {
+    use metrics::time;
+
+    // List of codes: https://lifthrasiir.github.io/rust-chrono/chrono/format/strftime/index.html
+    registry.register_metric("clock",
+                             "A timestamp clock. Uses format codes like date(1)",
+                             "%H:%M",
+                             time::clock_metric());
+}
 
 fn main() {
     let args: Vec<String> = env::args().collect();
