@@ -48,11 +48,12 @@ pub struct RenderResult {
 
 impl RenderResult {
     fn to_json(&self) -> String {
-        let result = format!(
-            "{{\"name\": \"{name}\",\"color\":\"{color}\",\"markup\":\"none\",\"full_text\":\"{text}\"}}",
-            name=self.name,
-            color=self.color.to_string(),
-            text=self.text);
+        let result = format!("{{\"name\": \
+                              \"{name}\",\"color\":\"{color}\",\"markup\":\"none\",\"full_text\":\
+                              \"{text}\"}}",
+                             name = self.name,
+                             color = self.color.to_string(),
+                             text = self.text);
         result
     }
 }
@@ -129,10 +130,16 @@ impl ActiveMetric {
 pub fn render_loop(mut metrics: Vec<ActiveMetric>, interval: i32) {
     let ival_duration = Duration::new(interval as u64, 0);
     let intro = "{\"version\":1}\n[\n";
-    println!("{}", intro);
+    print!("{}", intro);
 
     loop {
-        let render_result = metrics.iter_mut().map(|m| m.render()).fold(String::from(""), |mut out, p| { out.push_str(&p.to_json()); out.push_str(","); out });
+        let render_result = metrics.iter_mut()
+                                   .map(|m| m.render())
+                                   .fold(String::from(""), |mut out, p| {
+                                       out.push_str(&p.to_json());
+                                       out.push_str(",");
+                                       out
+                                   });
 
         println!("[{}],", render_result);
 
