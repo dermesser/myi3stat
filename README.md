@@ -57,11 +57,13 @@ render the metric.
 
 At the end of your `render()` implementation, you return a `RenderResult`:
 
-    RenderResult::new(contents, Color::Red)
+    // use framework::*;
+    fn RenderResult::new(text: String, color: Color) -> RenderResult
 
 This is the actual output that will appear.
 
-Finally, export a factory function that creates an instance of your metric:
+Finally, export a factory function that creates an instance of your metric
+(this way, you can keep the rest of your module private):
 
     pub fn make_your_metric() -> Box<Metric> { Box::new(MyCustomMetric) }
 
@@ -71,7 +73,8 @@ In `src/main.rs`, you need to register your metric inside the
 `register_metrics()` function near the end of the file:
 
     use metric::your_metric;
-    registry.register_metric("your_metric",
+    registry.register_metric(
+            "your_metric",  // metric name; used as command line flag
             "A metric that shows how frobnicated your foos are",  // Short description
             "format string",  // config parameter description
             your_metric::make_your_metric());  // An instance of your metric, of type Box<Metric>
