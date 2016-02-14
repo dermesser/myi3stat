@@ -89,3 +89,19 @@ If a user invokes `myi3stat` like this, your new metric will be displayed:
 
     myi3stat --your_metric "%f %f %d"
 
+### Use it
+
+Edit your i3 configuration, e.g. at `.config/i3/config` or `.i3/config`; add
+(or change) the following configuration snippet at the end of the file:
+
+    bar {
+        status_command /path/to/myi3stat --interval 5 --your_metric "%f %f"
+        tray_output primary
+    }
+
+Voilà!
+
+If you have several metrics, the default output is in alphabetical order; you can use the
+`--ordering` flag to change this behavior:
+
+    myi3stat --ordering your_metric,clock --your_metric "%f %f" --clock
