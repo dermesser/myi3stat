@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -72,6 +72,7 @@ pub enum State {
     I(i64),
     F(f64),
     C(Color),
+    BTS(BTreeSet<String>),
 }
 
 /// State that is passed to and returned from every render cycle.
@@ -100,7 +101,7 @@ impl MetricState {
     pub fn now() -> i64 {
         use self::chrono::Timelike;
         let t = chron::Local::now();
-        t.timestamp() + t.nanosecond() as i64 / 1000000
+        1000 * t.timestamp() + (t.nanosecond() as i64 / 1000000)
     }
 }
 
