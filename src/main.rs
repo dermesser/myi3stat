@@ -40,7 +40,6 @@ impl AvailableMetrics {
 
     /// Register a metric under the given name.
     /// desc and example are for the purpose of documenting the command line option that is added.
-    /// Does 
     fn register_metric(&mut self, name: &str, desc: &str, example: &str, metric: Box<Metric>) {
         if !self.metrics.contains_key(&String::from(name)) {
             self.opts.optopt("", name, desc, example);
@@ -117,11 +116,13 @@ impl AvailableMetrics {
     }
 }
 
+fn register_metrics(registry: &mut AvailableMetrics) {}
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let all_metrics = AvailableMetrics::new();
+    let mut all_metrics = AvailableMetrics::new();
+    register_metrics(&mut all_metrics);
     let (selected_metrics, interval) = all_metrics.evaluate(&args[1..]);
 
-    println!("{}", interval);
+    render_loop(selected_metrics, interval);
 }
