@@ -4,6 +4,10 @@ Intended to be a replacement for i3status, myi3stat is a small framework to
 easily extend your i3 status bar. It is configured mainly via command line
 arguments, and can be extended by small custom metrics.
 
+To view available metrics, execute
+
+    myi3stat --help
+
 ## How to add your metric
 
 ### Define a metric type
@@ -44,6 +48,7 @@ argument is a user-supplied string from the command line invocation (see below,
         I(i64),
         F(f64),
         C(Color),
+        BTS(BTreeSet<String>),
     }
 
 Every time your metric is asked to `render()`, it is given the same
