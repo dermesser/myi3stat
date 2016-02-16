@@ -1,6 +1,5 @@
 #![allow(dead_code)]
 
-use std::collections::{BTreeMap, BTreeSet};
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -64,38 +63,15 @@ impl RenderResult {
     }
 }
 
-/// State that is stored in a MetricState between rendering cycles.
-#[derive(Clone)]
-pub enum State {
-    Empty,
-    S(String),
-    I(i64),
-    F(f64),
-    C(Color),
-    BTS(BTreeSet<String>),
-}
-
 /// State that is passed to and returned from every render cycle.
 pub struct MetricState {
-    /// Arbitrary state
-    state: BTreeMap<String, State>,
-
     /// Unix epoch in seconds. This is updated by the framework.
     pub last_called: i64,
 }
 
 impl MetricState {
     pub fn new() -> MetricState {
-        MetricState {
-            state: BTreeMap::new(),
-            last_called: 0,
-        }
-    }
-    pub fn get(&self, k: String) -> State {
-        self.state.get(&k).unwrap_or(&State::Empty).clone()
-    }
-    pub fn set(&mut self, k: String, v: State) {
-        self.state.insert(k, v);
+        MetricState { last_called: 0 }
     }
     /// Returns timestamp in epoch milliseconds.
     pub fn now() -> i64 {
@@ -107,9 +83,9 @@ impl MetricState {
 
 pub trait Metric {
     /// Initializes a metric using the string supplied as parameter to the command line argument.
-    fn init(&self, _: &mut MetricState, _: Option<String>) {}
+    fn init(&mut self, _: &mut MetricState, _: Option<String>) {}
     /// Renders the metric.
-    fn render(&self, st: &mut MetricState) -> RenderResult;
+    fn render(&mut self, st: &mut MetricState) -> RenderResult;
 }
 
 /// A metric that is active in the current run and updated for every cycle.

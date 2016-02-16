@@ -10,7 +10,7 @@ struct LoadAvg;
 
 impl LoadAvg {
     fn read_load_avg() -> (String, Color) {
-        let loads = read_procfs_file(String::from("loadavg"))
+        let loads = read_procfs_file(String::from("/loadavg"))
                         .unwrap_or(String::from("0.0 0.0 0.0  "));
         let re = Regex::new(r"([0-9\.]+)\s+([0-9\.]+)\s+([0-9\.]+).*").unwrap();
 
@@ -44,7 +44,7 @@ impl LoadAvg {
 }
 
 impl Metric for LoadAvg {
-    fn render(&self, _: &mut MetricState) -> RenderResult {
+    fn render(&mut self, _: &mut MetricState) -> RenderResult {
         let (loads, color) = LoadAvg::read_load_avg();
         RenderResult::new(loads, color)
     }

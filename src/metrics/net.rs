@@ -5,20 +5,25 @@ use helper::get_procfs_file_lines;
 extern crate regex;
 use self::regex::Regex;
 
-use std::collections::BTreeSet;
+use std::collections::BTreeMap;
 
 // Interface name, transmitted bytes, received bytes. Used for both rates and counters!
 type IFStat = (String, u64, u64);
 
-struct NetInterfaceMetric;
+struct NetInterfaceMetric {
+    oldstat: BTreeMap<String, IFStat>,
+}
 
 impl NetInterfaceMetric {
+    fn new() -> NetInterfaceMetric {
+        NetInterfaceMetric { oldstat: BTreeMap::new() }
+    }
     /// Obtain current counters from /proc/net/dev
-    fn get_stats(ifs: BTreeSet<String>) -> Vec<IFStat> {
+    fn get_stats(ifs: &BTreeMap<String, IFStat>) -> Vec<IFStat> {
         let ifstats;
         let mut processed_stats = Vec::with_capacity(ifs.len());
 
-        match get_procfs_file_lines(String::from("net/dev")) {
+        match get_procfs_file_lines(String::from("/net/dev")) {
             None => ifstats = Vec::new(),
             Some(st) => ifstats = st,
         }
@@ -33,7 +38,7 @@ impl NetInterfaceMetric {
             match re.captures(&line) {
                 None => continue,
                 Some(caps) => {
-                    if ifs.contains(caps.at(1).unwrap()) {
+                    if ifs.contains_key(caps.at(1).unwrap()) {
                         processed_stats.push((
                             String::from(caps.at(1).unwrap()),
                             u64::from_str_radix(caps.at(2).unwrap(), 10).unwrap(),
@@ -75,64 +80,51 @@ impl NetInterfaceMetric {
                  acc
              })
     }
-
-    /// Parse a "{rx} {tx}" string into an IFStat tuple
-    fn str_to_ifstat(name: String, s: String) -> IFStat {
-        let re = Regex::new(r"^(\d+) (\d+)$").unwrap();
-
-        match re.captures(&s) {
-            None => (name, 0, 0),
-            Some(caps) => {
-                let rx = u64::from_str_radix(caps.at(1).unwrap(), 10).unwrap();
-                let tx = u64::from_str_radix(caps.at(2).unwrap(), 10).unwrap();
-                (name, rx, tx)
-            }
-        }
-    }
 }
 
 impl Metric for NetInterfaceMetric {
-    fn init(&self, st: &mut MetricState, initarg: Option<String>) {
+    fn init(&mut self, _: &mut MetricState, initarg: Option<String>) {
         match initarg {
             None => (),
             Some(s) => {
-                let wanted_ifs: BTreeSet<String> = commaseparated_to_vec(s).into_iter().collect();
-                st.set(String::from("ifs"), State::BTS(wanted_ifs));
+                let mut wanted_ifs = BTreeMap::new();
+                for intf in commaseparated_to_vec(s) {
+                    wanted_ifs.insert(intf.clone(), (intf, 0, 0));
+                }
+                self.oldstat = wanted_ifs;
             }
         }
     }
 
-    fn render(&self, st: &mut MetricState) -> RenderResult {
+    fn render(&mut self, st: &mut MetricState) -> RenderResult {
         let interval = (MetricState::now() - st.last_called) as u64;
 
-        let interfaces;
-        match st.get(String::from("ifs")) {
-            State::BTS(ifs) => interfaces = ifs,
-            _ => return RenderResult::new(String::from("n/a"), Color::Red),
+        if self.oldstat.is_empty() {
+            return RenderResult::new(String::from("n/a"), Color::Red);
         }
 
         // Get current counters
-        let newstats = NetInterfaceMetric::get_stats(interfaces);
+        let newstats = NetInterfaceMetric::get_stats(&self.oldstat);
         let mut rates: Vec<IFStat> = Vec::new(); // this is the final output
 
         for (ifname, rx, tx) in newstats {
             // Obtain previous rx/tx counts from state
             let oldstat;
-            match st.get(ifname.clone()) {
-                State::S(o) => oldstat = NetInterfaceMetric::str_to_ifstat(ifname.clone(), o),
+            match self.oldstat.get(&ifname) {
+                Some(o) => oldstat = o.clone(),
                 _ => oldstat = (ifname.clone(), rx, tx),
             }
 
             // calculate rate over last interval
             match oldstat {
-                (ifname, oldrx, oldtx) => {
+                (ref ifname, oldrx, oldtx) => {
                     rates.push((ifname.clone(),
                                 1000 * (rx - oldrx) / interval,
                                 1000 * (tx - oldtx) / interval));
-                    // Store current counters in state
-                    st.set(ifname.clone(), State::S(format!("{} {}", rx, tx)));
                 }
             }
+            // Store current counters in state
+            self.oldstat.insert(ifname.clone(), (ifname, rx, tx));
         }
 
         RenderResult::new(NetInterfaceMetric::format_stats(rates), Color::Green)
@@ -140,5 +132,5 @@ impl Metric for NetInterfaceMetric {
 }
 
 pub fn make_net_metric() -> Box<Metric> {
-    Box::new(NetInterfaceMetric)
+    Box::new(NetInterfaceMetric::new())
 }

@@ -91,7 +91,7 @@ impl AvailableMetrics {
         let mut metrics = Vec::new();
 
         // Look for every defined metric if the user wants to have it displayed.
-        for (metric_name, metric) in self.metrics.into_iter() {
+        for (metric_name, mut metric) in self.metrics.into_iter() {
             if matches.opt_present(&metric_name) {
                 let mut st = MetricState::new();
                 metric.init(&mut st, matches.opt_str(&metric_name));
