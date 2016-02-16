@@ -10,56 +10,48 @@ To view available metrics, execute
 
 ## How to add your metric
 
+(there are already some predefined metric types in src/metrics/ that you can
+use as reference).
+
 ### Define a metric type
 
 Create a new module under `src/metrics/`, and define your type:
 
     struct MyCustomMetric;
 
-You usually don't need any data members, as state between runs is carried in a
-framework-supplied `MetricState` container.
+You can define any fields in that struct; you'd usually use them to keep track
+of counters between individual rendering runs (in order to calculate rates, for
+example).
 
 ### Implement the `Metric` trait
 
 Implement the `Metric` trait for your type.
 
     pub trait Metric {
-            fn init(&self, st: &mut MetricState, initarg: Option<String>);
-            fn render(&self, st: &mut MetricState) -> RenderResult;
+            fn init(&mut self, st: &mut MetricState, initarg: Option<String>);
+            fn render(&mut self, st: &mut MetricState) -> RenderResult;
     }
 
 The `init()` method takes a `MetricState` object, and an optional argument. The
 argument is a user-supplied string from the command line invocation (see below,
-"Register your metric"). `MetricState` is a quite simple type:
+"Register your metric"). `MetricState` is a quite simple type (at the moment):
 
-    // use framework::*;
-    // Essentially a map of arbitrary keys to dynamically-typed State entries (see below).
     impl MetricState {
-        pub fn get(&self, k: String) -> State;
-        pub fn set(&mut self, k: String, v: State);
         // Obtain current timestamp.
         pub fn now() -> i64;
         // Time (in milliseconds since Unix epoch) of last call.
         pub last_called: i64;
     }
-    pub enum State {
-        Empty,
-        S(String),
-        I(i64),
-        F(f64),
-        C(Color),
-        BTS(BTreeSet<String>),
-    }
 
 Every time your metric is asked to `render()`, it is given the same
-`MetricState` object; `last_called` is set to the timestamp of the previous
-invocation (so you can compute a rate, for example); it has millisecond
-resolution and is 0 on first invocation. You can arbitrarily get and set values
-on the `MetricState`.
+`MetricState` object (and of course the very same underlying Metric);
+`last_called` is set to the timestamp of the previous invocation (so you can
+compute a rate, for example); it has millisecond resolution and is set
+to 0 on the first invocation.
 
-Typically you will set some constant configuration parameters at the invocation
-of your `init()` method, and use them later to determine how exactly you'll
-render the metric.
+Typically you will set some constant configuration parameters on your metric
+object when your `init()` method is invoked, and use them later to determine
+how exactly you'll render the metric.
 
 At the end of your `render()` implementation, you return a `RenderResult`:
 
