@@ -74,7 +74,7 @@ impl AvailableMetrics {
     /// Returns a map of metric -> position in ordering list
     fn make_ordering_map(ord_list: String) -> BTreeMap<String, i32> {
         let parts = ord_list.split(",");
-        let mut i = 0;
+        let mut i = 1;
         let mut ordmap = BTreeMap::new();
 
         for metric in parts {
@@ -120,6 +120,7 @@ impl AvailableMetrics {
 }
 
 fn register_metrics(registry: &mut AvailableMetrics) {
+    use metrics::cpu_load;
     use metrics::load;
     use metrics::net;
     use metrics::time;
@@ -138,6 +139,12 @@ fn register_metrics(registry: &mut AvailableMetrics) {
                               minutes.",
                              "",
                              load::make_load_metric());
+    registry.register_metric("cpu_load",
+                             "Shows the cpu load in percent over the last measure interval. abs \
+                              means: 4 core seconds = 400%; rel means (on a quadcore): 4 core \
+                              seconds = 100%",
+                             "abs|rel",
+                             cpu_load::make_cpu_load_metric());
 }
 
 fn main() {
