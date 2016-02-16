@@ -7,3 +7,4 @@ authors = ["Lewin Bormann <lbo@spheniscida.de>"]
 getopts = ">=0.2"
 regex = ">=0.1"
 chrono = ">=0.2"
+libc = ">=0.2"
