@@ -37,6 +37,7 @@ pub fn read_procfs_file(path: String) -> Option<String> {
     }
 }
 
+/// Splits the result of read_procfs_file() into lines.
 pub fn get_procfs_file_lines(path: String) -> Option<Vec<String>> {
     match read_procfs_file(path) {
         None => None,
@@ -44,10 +45,13 @@ pub fn get_procfs_file_lines(path: String) -> Option<Vec<String>> {
     }
 }
 
+/// Splits a string at commas (',') and returns the list of the elements separated.
 pub fn commaseparated_to_vec(s: String) -> Vec<String> {
     s.split(",").map(String::from).collect()
 }
 
+/// Return a list of all matches of a regex on a string in the wanted type.
+/// This is difficult to explain -- look at src/metrics/load.rs for a simple use case.
 pub fn extract_from_str<T: FromStr + Clone, C: FromIterator<T>>(s: &String,
                                                                 re: &Regex,
                                                                 default: T)

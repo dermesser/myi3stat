@@ -37,7 +37,7 @@ impl Config {
                        "SECONDS");
         options.optopt("",
                        "renderer",
-                       "Which renderer to use. Currently available: i3status",
+                       "Which renderer to use. Currently available: i3status,plain",
                        "i3status");
         options.optflag("h", "help", "Print a help text");
 
@@ -174,6 +174,7 @@ fn register_renderers(registry: &mut Config) {
     use render;
 
     registry.register_renderer("i3status", render::make_i3status());
+    registry.register_renderer("plain", render::make_plaintextrenderer());
 }
 
 fn main() {

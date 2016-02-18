@@ -58,6 +58,9 @@ impl RenderResult {
                              text = self.text);
         result
     }
+    pub fn get(&self) -> (String, Color) {
+        (self.text.clone(), self.color.clone())
+    }
 }
 
 /// State that is passed to and returned from every render cycle.
