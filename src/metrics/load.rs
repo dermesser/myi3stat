@@ -18,7 +18,10 @@ impl LoadAvg {
         if load_avgs.len() < 3 {
             (String::from("0.0 0.0 0.0"), Color::Purple)
         } else {
-            (format!("{} {} {}", load_avgs[0], load_avgs[1], load_avgs[2]),
+            (format!("{:5.2} {:5.2} {:5.2}",
+                     load_avgs[0],
+                     load_avgs[1],
+                     load_avgs[2]),
              LoadAvg::get_color(load_avgs[0]))
         }
     }
