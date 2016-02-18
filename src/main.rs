@@ -1,6 +1,7 @@
 mod framework;
 mod helper;
 mod metrics;
+mod render;
 
 use std::collections::BTreeMap;
 use std::process;
@@ -10,18 +11,20 @@ extern crate getopts;
 use getopts::Options;
 
 use framework::*;
+use render::*;
 
 /// Represents a/the set of metrics available for display.
-struct AvailableMetrics {
+struct Config {
     metrics: BTreeMap<String, Box<Metric>>,
+    renderers: BTreeMap<String, Box<Renderer>>,
     opts: Options,
 }
 
 
 /// Set of all metrics. Used to register metrics and select the active ones based on the user's
 /// selection.
-impl AvailableMetrics {
-    fn new() -> AvailableMetrics {
+impl Config {
+    fn new() -> Config {
         let mut options = Options::new();
         options.optopt("",
                        "ordering",
@@ -32,10 +35,15 @@ impl AvailableMetrics {
                        "interval",
                        "Interval in milliseconds between individual render cycles. Default: 1000",
                        "SECONDS");
+        options.optopt("",
+                       "renderer",
+                       "Which renderer to use. Currently available: i3status",
+                       "i3status");
         options.optflag("h", "help", "Print a help text");
 
-        AvailableMetrics {
+        Config {
             metrics: BTreeMap::new(),
+            renderers: BTreeMap::new(),
             opts: options,
         }
     }
@@ -46,6 +54,12 @@ impl AvailableMetrics {
         if !self.metrics.contains_key(&String::from(name)) {
             self.opts.optflagopt("", name, desc, example);
             self.metrics.insert(String::from(name), metric);
+        }
+    }
+
+    fn register_renderer(&mut self, name: &str, r: Box<Renderer>) {
+        if !self.renderers.contains_key(name) {
+            self.renderers.insert(String::from(name), r);
         }
     }
 
@@ -84,9 +98,11 @@ impl AvailableMetrics {
         ordmap
     }
 
-    /// Returns a vec of the selected metrics in the wanted order, and the interval between render
-    /// cycles in seconds.
-    fn evaluate(mut self, args: &[String]) -> (Vec<ActiveMetric>, i32) {
+    /// Returns the selected renderer; the list of selected metrics; and the chosen interval in
+    /// milliseconds.
+    fn evaluate(mut self, args: &[String]) -> (Box<Renderer>, Vec<ActiveMetric>, i32) {
+        use std::str::FromStr;
+
         let matches = self.parse_args(args);
         let mut metrics = Vec::new();
 
@@ -101,8 +117,8 @@ impl AvailableMetrics {
 
         // Sort metrics by position in the supplied ordering list (or alternatively
         // alphabetically).
-        let ordmap = AvailableMetrics::make_ordering_map(matches.opt_str("ordering")
-                                                                .unwrap_or(String::from("")));
+        let ordmap = Config::make_ordering_map(matches.opt_str("ordering")
+                                                      .unwrap_or(String::from("")));
         metrics.sort_by(|a, b| {
             match (ordmap.get(a.name()), ordmap.get(b.name())) {
                 (Some(i1), Some(i2)) => i1.cmp(i2),
@@ -110,16 +126,23 @@ impl AvailableMetrics {
             }
         });
 
-        let interval = i32::from_str_radix(&matches.opt_str("interval")
-                                                   .unwrap_or(String::from("1000")),
-                                           10)
+        // Select and set up renderer
+        let interval = i32::from_str(&matches.opt_str("interval").unwrap_or(String::from("1000")))
                            .unwrap_or(1000);
+        let renderer_name = matches.opt_str("renderer").unwrap_or(String::from("i3status"));
 
-        (metrics, interval)
+
+        if !self.renderers.contains_key(&renderer_name) {
+            panic!(format!("Renderer '{}' not registered!!", renderer_name));
+        }
+
+        let renderer = self.renderers.remove(&renderer_name).unwrap();
+
+        (renderer, metrics, interval)
     }
 }
 
-fn register_metrics(registry: &mut AvailableMetrics) {
+fn register_metrics(registry: &mut Config) {
     use metrics::cpu_load;
     use metrics::load;
     use metrics::net;
@@ -147,11 +170,19 @@ fn register_metrics(registry: &mut AvailableMetrics) {
                              cpu_load::make_cpu_load_metric());
 }
 
+fn register_renderers(registry: &mut Config) {
+    use render;
+
+    registry.register_renderer("i3status", render::make_i3status());
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let mut all_metrics = AvailableMetrics::new();
-    register_metrics(&mut all_metrics);
-    let (selected_metrics, interval) = all_metrics.evaluate(&args[1..]);
+    let mut cfg = Config::new();
+    register_metrics(&mut cfg);
+    register_renderers(&mut cfg);
+    let (renderer, selected_metrics, interval) = cfg.evaluate(&args[1..]);
 
-    render_loop(selected_metrics, interval);
+
+    render_loop(renderer, selected_metrics, interval);
 }

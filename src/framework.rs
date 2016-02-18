@@ -1,8 +1,5 @@
 #![allow(dead_code)]
 
-use std::thread::sleep;
-use std::time::Duration;
-
 extern crate chrono;
 use self::chrono as chron;
 
@@ -52,7 +49,7 @@ impl RenderResult {
             color: color,
         }
     }
-    fn to_json(&self) -> String {
+    pub fn to_json(&self) -> String {
         let result = format!("{{\"name\": \
                               \"{name}\",\"color\":\"{color}\",\"markup\":\"none\",\"full_text\":\
                               \"{text}\"}}",
@@ -111,25 +108,5 @@ impl ActiveMetric {
         self.st.last_called = MetricState::now();
         result.name = self.name.clone();
         result
-    }
-}
-
-pub fn render_loop(mut metrics: Vec<ActiveMetric>, interval: i32) {
-    let ival_duration = Duration::new((interval / 1000) as u64, 1000000 * (interval as u32 % 1000));
-    let intro = "{\"version\":1}\n[[]\n";
-    print!("{}", intro);
-
-    loop {
-        let mut render_result = metrics.iter_mut()
-                                       .map(|m| m.render())
-                                       .fold(String::from(""), |mut out, p| {
-                                           out.push_str(&p.to_json());
-                                           out.push_str(",");
-                                           out
-                                       });
-        render_result.pop();
-        println!(",[{}]", render_result);
-
-        sleep(ival_duration);
     }
 }
