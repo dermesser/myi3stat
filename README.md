@@ -103,3 +103,19 @@ If you have several metrics, the default output is in alphabetical order; you ca
 `--ordering` flag to change this behavior:
 
     myi3stat --ordering your_metric,clock --your_metric "%f %f" --clock
+
+## Advanced: How to add your renderer
+
+You can also customize the rendering part. By implementing the `Renderer` trait (defined in `src/render.rs`) and
+registering it within `register_renderers()` in `src/main.rs`, you can define arbitrary -- usually text-based -- renderers.
+
+The currently available renderers are
+
+* i3status: This renders the metrics in a format suitable for `i3bar` to display them.
+* plain: This renders metrics in a way similar to `dstat`, using ANSI colors on stdout.
+
+The renderer to be used is selected using the `--renderer` option:
+
+    myi3stat --interval 1000 --renderer plain [...]
+
+
