@@ -1,10 +1,10 @@
-use std::str::FromStr;
 
 extern crate regex;
 use self::regex::Regex;
 
 use framework::*;
 use helper::read_procfs_file;
+use helper::extract_from_str;
 
 struct LoadAvg;
 
@@ -13,22 +13,18 @@ impl LoadAvg {
         let loads = read_procfs_file(String::from("/loadavg"))
                         .unwrap_or(String::from("0.0 0.0 0.0  "));
         let re = Regex::new(r"([0-9\.]+)\s+([0-9\.]+)\s+([0-9\.]+).*").unwrap();
+        let load_avgs: Vec<f64> = extract_from_str(&loads, &re, 0.);
 
-        match re.captures(&loads) {
-            None => (String::from("0.0 0.0 0.0"), Color::Purple),
-            Some(caps) => {
-                (format!("{} {} {}",
-                         caps.at(1).unwrap(),
-                         caps.at(2).unwrap(),
-                         caps.at(3).unwrap()),
-                 LoadAvg::get_color(caps.at(1).unwrap()))
-            }
+        if load_avgs.len() < 3 {
+            (String::from("0.0 0.0 0.0"), Color::Purple)
+        } else {
+            (format!("{} {} {}", load_avgs[0], load_avgs[1], load_avgs[2]),
+             LoadAvg::get_color(load_avgs[0]))
         }
     }
 
     // load is a string containing one float number.
-    fn get_color(load: &str) -> Color {
-        let f = f64::from_str(load).unwrap_or(0.);
+    fn get_color(f: f64) -> Color {
 
         // TODO: Make color thresholds configurable
         if f >= 0. && f < 1.5 {
