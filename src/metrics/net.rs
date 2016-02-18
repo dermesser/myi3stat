@@ -1,6 +1,5 @@
 use framework::*;
-use helper::commaseparated_to_vec;
-use helper::get_procfs_file_lines;
+use helper::{commaseparated_to_vec, get_procfs_file_lines, extract_from_str};
 
 extern crate regex;
 use self::regex::Regex;
@@ -12,14 +11,18 @@ type IFStat = (String, u64, u64);
 
 struct NetInterfaceMetric {
     oldstat: BTreeMap<String, IFStat>,
+    whole_line_re: Regex,
+    interface_re: Regex,
 }
 
 impl NetInterfaceMetric {
     fn new() -> NetInterfaceMetric {
-        NetInterfaceMetric { oldstat: BTreeMap::new() }
+        NetInterfaceMetric { oldstat: BTreeMap::new(),
+        whole_line_re: Regex::new(r"^\s*[a-z0-9]+:\s+(\d+)\s+(\d+)\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+(\d+)\s+(\d+)\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+$").unwrap(),
+        interface_re: Regex::new(r"^\s*([a-z0-9]+):.+").unwrap()}
     }
     /// Obtain current counters from /proc/net/dev
-    fn get_stats(ifs: &BTreeMap<String, IFStat>) -> Vec<IFStat> {
+    fn get_stats(&self, ifs: &BTreeMap<String, IFStat>) -> Vec<IFStat> {
         let ifstats;
         let mut processed_stats = Vec::with_capacity(ifs.len());
 
@@ -32,20 +35,23 @@ impl NetInterfaceMetric {
         //           *           *                                                    *         *
         //  iface |bytes       packets  errs drop fifo frame   compressed multicast|bytes     packets errs drop fifo colls   carrier compressed
         //  eth0:  1037503524  872642    0    0    0     0          0     10482     40971427  300143    0    1    0     0       0          0
-        let re = Regex::new(r"^\s*([a-z0-9]+):\s+(\d+)\s+(\d+)\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+(\d+)\s+(\d+)\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+\s+\d+$").unwrap();
 
         for line in ifstats {
-            match re.captures(&line) {
-                None => continue,
-                Some(caps) => {
-                    if ifs.contains_key(caps.at(1).unwrap()) {
-                        processed_stats.push((
-                            String::from(caps.at(1).unwrap()),
-                            u64::from_str_radix(caps.at(2).unwrap(), 10).unwrap(),
-                            u64::from_str_radix(caps.at(4).unwrap(), 10).unwrap()
-                        ));
-                    }
-                }
+            let results: Vec<String> = extract_from_str(&line,
+                                                        &self.interface_re,
+                                                        String::from(""));
+
+            if results.len() < 1 {
+                continue;
+            }
+
+            let interface = &results[0];
+
+            if ifs.contains_key(interface) {
+                let stats: Vec<u64> = extract_from_str(&line, &self.whole_line_re, 0);
+                assert!(stats.len() > 3);
+                processed_stats.push((interface.clone(), stats[0], stats[2]));
+
             }
         }
 
@@ -104,7 +110,7 @@ impl Metric for NetInterfaceMetric {
         }
 
         // Get current counters
-        let newstats = NetInterfaceMetric::get_stats(&self.oldstat);
+        let newstats = self.get_stats(&self.oldstat);
         let mut rates: Vec<IFStat> = Vec::new(); // this is the final output
 
         for (ifname, rx, tx) in newstats {
