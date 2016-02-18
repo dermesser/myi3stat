@@ -1,5 +1,5 @@
 use framework::*;
-use helper::get_procfs_file_lines;
+use helper::{get_procfs_file_lines, extract_from_str};
 
 extern crate regex;
 use self::regex::Regex;
@@ -55,32 +55,20 @@ impl CPULoadMetric {
         }
     }
     fn get_total_cpu_millis(&self) -> u64 {
+        let lines = get_procfs_file_lines(String::from("/stat")).unwrap_or(Vec::new());
 
-        let lines = get_procfs_file_lines(String::from("/stat"));
-
-        match lines {
-            None => return 0,
-            Some(lns) => {
-                for line in lns {
-                    match self.total_cpu_regex.captures(&line) {
-                        None => return 0,
-                        Some(cpts) => {
-                            return self.calc_total_cpu_millis(cpts.at(1).unwrap_or("0"),
-                                                              cpts.at(2).unwrap_or("0"),
-                                                              cpts.at(3).unwrap_or("0"))
-                        }
-                    }
-                }
+        for line in lines {
+            let nums: Vec<u64> = extract_from_str(&line, &self.total_cpu_regex, 0);
+            if nums.len() < 3 {
+                continue;
             }
+            return self.calc_total_cpu_millis(nums[0], nums[1], nums[2]);
         }
         return 0;
     }
 
-    fn calc_total_cpu_millis(&self, user: &str, nice: &str, sys: &str) -> u64 {
-        use std::str::FromStr;
-        return (1000 / self.user_hz) *
-               (u64::from_str(user).unwrap_or(0) + u64::from_str(nice).unwrap_or(0) +
-                u64::from_str(sys).unwrap_or(0));
+    fn calc_total_cpu_millis(&self, user: u64, nice: u64, sys: u64) -> u64 {
+        return (1000 / self.user_hz) * (user + nice + sys);
     }
 }
 
