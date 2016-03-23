@@ -6,5 +6,6 @@ authors = ["Lewin Bormann <lbo@spheniscida.de>"]
 [dependencies]
 getopts = ">=0.2"
 regex = ">=0.1"
+time = ">=0.1.34"
 chrono = ">=0.2"
 libc = ">=0.2"

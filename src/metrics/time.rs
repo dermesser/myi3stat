@@ -2,8 +2,8 @@
 
 use framework::*;
 
-extern crate chrono;
-use self::chrono::Local;
+extern crate time;
+//use self::time;
 
 struct TimeMetric {
     fmt: String,
@@ -16,8 +16,8 @@ impl Metric for TimeMetric {
         self.fmt = arg.unwrap_or(String::from(DEFAULT_FMT));
     }
     fn render(&mut self, _: &mut MetricState) -> RenderResult {
-        let t = Local::now();
-        let tstr = format!("{}", t.format(&self.fmt));
+        let t = time::now();
+        let tstr = format!("{}", t.strftime(&self.fmt).unwrap());
 
         RenderResult::new(tstr, Color::Default)
     }
