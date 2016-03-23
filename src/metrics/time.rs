@@ -9,7 +9,7 @@ struct TimeMetric {
     fmt: String,
 }
 
-const DEFAULT_FMT: &'static str = "%a %b %d %H:%M:%S %Y (%Z)";
+const DEFAULT_FMT: &'static str = "%a %b %d %H:%M:%S %Y";
 
 impl Metric for TimeMetric {
     fn init(&mut self, _: &mut MetricState, arg: Option<String>) {
